@@ -66,6 +66,10 @@ class GraphTests {
     @Test
     fun plus() {
         val expectedResult = listOf(
+            listOf(0, 2, 0, 0),
+            listOf(2, 0, 3, 0),
+            listOf(0, 3, 0, 4),
+            listOf(0, 0, 4, 0),
             listOf(0, 5, 0, 0),
             listOf(5, 0, 6, 0),
             listOf(0, 6, 0, 7),

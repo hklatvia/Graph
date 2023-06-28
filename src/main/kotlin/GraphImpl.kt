@@ -1,5 +1,18 @@
-class GraphImpl(private val edges: List<Triple<Int, Int, Int>>) : Graph {
-    var adjacencyMap = buildAdjacencyMap().toMutableList()
+class GraphImpl(edges: List<Triple<Int, Int, Int>>) : Graph {
+    var adjacencyMap = mutableListOf<MutableList<Int>>()
+
+    init {
+        val numVertices = edges.flatMap {
+            listOf(it.first, it.second)
+        }.maxOrNull()?.plus(1) ?: 0
+        adjacencyMap = MutableList(numVertices) { MutableList(numVertices) { 0 } }
+        edges.forEach() {
+            adjacencyMap[it.first][it.second] = it.third
+            adjacencyMap[it.second][it.first] = it.third
+        }
+    }
+
+    constructor() : this(emptyList())
 
     fun printGraph() {
         adjacencyMap.forEach() {
@@ -8,21 +21,16 @@ class GraphImpl(private val edges: List<Triple<Int, Int, Int>>) : Graph {
         }
     }
 
-    fun printDijkstraResult(distances: MutableList<Int>, source: Int) {
-        println("Dijkstra's Shortest Paths:")
-        for (v in distances.indices) {
-            println("From point $source to point $v the shortest way :  ${distances[v]}")
-        }
-    }
-
     operator fun plus(other: GraphImpl): GraphImpl {
-        val combinedEdges = (this.edges + other.edges).distinct()
-        val newGraph = GraphImpl(combinedEdges)
-        newGraph.adjacencyMap = newGraph.buildAdjacencyMap().toMutableList()
+        val combinedMap = this.adjacencyMap + other.adjacencyMap
+        println(combinedMap.toMutableList())
+        val newGraph = GraphImpl()
+        newGraph.adjacencyMap = combinedMap.toMutableList()
         return newGraph
     }
 
     override fun addEdge(vertex1: Int, vertex2: Int, weight: Int) {
+        expandAdjacencyMap(vertex1, vertex2)
         adjacencyMap[vertex1][vertex2] = weight
         adjacencyMap[vertex2][vertex1] = weight
     }
@@ -38,7 +46,7 @@ class GraphImpl(private val edges: List<Triple<Int, Int, Int>>) : Graph {
     }
 
     override fun findShortestWay(source: Int): List<Int> {
-        val numVertices = buildAdjacencyMap().size
+        val numVertices = adjacencyMap.size
         val distances = MutableList(numVertices) { Int.MAX_VALUE }
         val visited = BooleanArray(numVertices)
 
@@ -59,7 +67,7 @@ class GraphImpl(private val edges: List<Triple<Int, Int, Int>>) : Graph {
         return distances
     }
 
-    private fun minDistance(distances: MutableList<Int>, visited: BooleanArray): Int {
+    private fun minDistance(distances: List<Int>, visited: BooleanArray): Int {
         var min = Int.MAX_VALUE
         var minIndex = -1
 
@@ -72,16 +80,19 @@ class GraphImpl(private val edges: List<Triple<Int, Int, Int>>) : Graph {
         return minIndex
     }
 
-    private fun buildAdjacencyMap(): List<MutableList<Int>> {
-        val numVertices = edges.flatMap {
-            listOf(it.first, it.second)
-        }.maxOrNull()?.plus(1) ?: 0
-        val newAdjacencyMap = MutableList(numVertices) { MutableList(numVertices) { 0 } }
-        edges.forEach() {
-            newAdjacencyMap[it.first][it.second] = it.third
-            newAdjacencyMap[it.second][it.first] = it.third
+    private fun expandAdjacencyMap(vertex1: Int, vertex2: Int) {
+        val maxVertex = maxOf(vertex1, vertex2)
+        val expandedAdjacencyMap = MutableList(maxVertex + 1) { MutableList(maxVertex + 1) { 0 } }
+        if (maxVertex < adjacencyMap.lastIndex) {
+            return
+        } else {
+            adjacencyMap.forEachIndexed { i, row ->
+                row.forEachIndexed { j, value ->
+                    expandedAdjacencyMap[i][j] = value
+                }
+            }
+            adjacencyMap = expandedAdjacencyMap
         }
-        return newAdjacencyMap
     }
 }
 
