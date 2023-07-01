@@ -1,12 +1,18 @@
 fun main() {
     val edges = listOf(
-        Triple(0, 1, 2),
-        Triple(1, 2, 3),
-        Triple(2, 3, 4)
+        Triple("Car", "Bus", 2),
+        Triple("Megabus", "MegaCar", 3),
+        Triple("Train", "plain", 4)
     )
     val edges1 = listOf(
-        Triple(0, 1, 5),
-        Triple(1, 2, 6),
-        Triple(2, 3, 7)
+        Triple("a", "b", 5),
+        Triple("c", "d", 6),
+        Triple("x", "y", 7)
     )
+    val graph1 = GraphImpl(edges1)
+    graph1.addEdge("c", "u", 9)
+    graph1.addEdge("j", "u", 10)
+    graph1.printGraph()
+    println( graph1.toEdges())
+
 }

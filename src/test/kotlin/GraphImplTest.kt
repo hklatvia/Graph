@@ -3,55 +3,64 @@ import org.junit.jupiter.api.Assertions.*
 
 class GraphTests {
     private val edges = listOf(
-        Triple(0, 1, 2),
-        Triple(1, 2, 3),
-        Triple(2, 3, 4)
+        Triple("Car", "Bus", 2),
+        Triple("Bus", "MegaBus", 3),
+        Triple("MegaBus", "plain", 4)
     )
     private val edges1 = listOf(
-        Triple(0, 1, 5),
-        Triple(1, 2, 6),
-        Triple(2, 3, 7)
+        Triple("a", "b", 5),
+        Triple("c", "d", 6),
+        Triple("x", "y", 7)
     )
 
     @Test
-    fun addEdge() {
-        val graph = GraphImpl(edges)
+    fun toEdge() {
+        val result = GraphImpl(edges).toEdges()
         val expectedResult = listOf(
-            listOf(0, 2, 0, 0),
-            listOf(2, 0, 5, 0),
-            listOf(0, 5, 0, 4),
-            listOf(0, 0, 4, 0),
+            Triple("Car", "Bus", 2),
+            Triple("Bus", "MegaBus", 3),
+            Triple("MegaBus", "plain", 4)
         )
-        graph.addEdge(1, 2, 5)
-        val result = graph.adjacencyMap
+        assertEquals(expectedResult, result)
+    }
+
+    @Test
+    fun addEdge() {
+        val graph = GraphImpl(edges1)
+        val expectedResult = listOf(
+            Triple("a", "b", 5),
+            Triple("c", "d", 6),
+            Triple("x", "y", 7),
+            Triple("c", "u", 8),
+        ).toSet()
+        graph.addEdge("c", "u", 8)
+        val result = graph.toEdges().toSet()
         assertEquals(expectedResult, result)
     }
 
     @Test
     fun changeEdge() {
-        val graph = GraphImpl(edges)
+        val graph = GraphImpl(edges1)
         val expectedResult = listOf(
-            listOf(0, 5, 0, 0),
-            listOf(5, 0, 3, 0),
-            listOf(0, 3, 0, 4),
-            listOf(0, 0, 4, 0),
-        )
-        graph.updateEdge(0, 1, 5)
-        val result = graph.adjacencyMap
+            Triple("a", "b", 10),
+            Triple("c", "d", 6),
+            Triple("x", "y", 7),
+        ).toSet()
+        graph.updateEdge("a", "b", 10)
+        val result = graph.toEdges().toSet()
         assertEquals(expectedResult, result)
     }
 
+
     @Test
     fun removeEdge() {
-        val graph = GraphImpl(edges)
+        val graph = GraphImpl(edges1)
         val expectedResult = listOf(
-            listOf(0, 0, 0, 0),
-            listOf(0, 0, 3, 0),
-            listOf(0, 3, 0, 4),
-            listOf(0, 0, 4, 0),
-        )
-        graph.removeEdge(0, 1)
-        val result = graph.adjacencyMap
+            Triple("a", "b", 5),
+            Triple("c", "d", 6),
+        ).toSet()
+        graph.removeEdge("x", "y")
+        val result = graph.toEdges().toSet()
         assertEquals(expectedResult, result)
     }
 
@@ -59,25 +68,23 @@ class GraphTests {
     fun findShortestWay() {
         val graph = GraphImpl(edges)
         val expectedResult = listOf(0, 2, 5, 9)
-        val result = graph.findShortestWay(0)
+        val result = graph.findShortestWay("Car")
         assertEquals(expectedResult, result)
     }
 
     @Test
     fun plus() {
         val expectedResult = listOf(
-            listOf(0, 2, 0, 0),
-            listOf(2, 0, 3, 0),
-            listOf(0, 3, 0, 4),
-            listOf(0, 0, 4, 0),
-            listOf(0, 5, 0, 0),
-            listOf(5, 0, 6, 0),
-            listOf(0, 6, 0, 7),
-            listOf(0, 0, 7, 0),
-        )
+            Triple("Car", "Bus", 2),
+            Triple("Bus", "MegaBus", 3),
+            Triple("MegaBus", "plain", 4),
+            Triple("a", "b", 5),
+            Triple("c", "d", 6),
+            Triple("x", "y", 7)
+        ).toSet()
         val graph = GraphImpl(edges)
         val graph1 = GraphImpl(edges1)
-        val result = (graph + graph1).adjacencyMap
+        val result = (graph + graph1).toEdges().toSet()
         assertEquals(expectedResult, result)
     }
 

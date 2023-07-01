@@ -1,14 +1,20 @@
-class GraphImpl(edges: List<Triple<Int, Int, Int>>) : Graph {
-    var adjacencyMap = mutableListOf<MutableList<Int>>()
+class GraphImpl(edges: List<Triple<String, String, Int>>) : Graph {
+    private var adjacencyMap = mutableListOf<MutableList<Int>>()
+    private var vertexMap = mutableMapOf<String, Int>()
 
     init {
-        val numVertices = edges.flatMap {
-            listOf(it.first, it.second)
-        }.maxOrNull()?.plus(1) ?: 0
-        adjacencyMap = MutableList(numVertices) { MutableList(numVertices) { 0 } }
-        edges.forEach() {
-            adjacencyMap[it.first][it.second] = it.third
-            adjacencyMap[it.second][it.first] = it.third
+        val vertices = edges.flatMap { listOf(it.first, it.second) }.distinct()
+
+        vertices.forEachIndexed { index, value ->
+            vertexMap[value] = index
+        }
+        adjacencyMap = MutableList(vertices.size) { MutableList(vertices.size) { 0 } }
+
+        edges.forEach { edge ->
+            val firstVertex = vertexMap[edge.first] ?: 0
+            val secondVertex = vertexMap[edge.second] ?: 0
+            adjacencyMap[firstVertex][secondVertex] = edge.third
+            adjacencyMap[secondVertex][firstVertex] = edge.third
         }
     }
 
@@ -22,38 +28,48 @@ class GraphImpl(edges: List<Triple<Int, Int, Int>>) : Graph {
     }
 
     operator fun plus(other: GraphImpl): GraphImpl {
-        val combinedMap = this.adjacencyMap + other.adjacencyMap
-        println(combinedMap.toMutableList())
-        val newGraph = GraphImpl()
-        newGraph.adjacencyMap = combinedMap.toMutableList()
-        return newGraph
+        val combinedEdges = (this.toEdges() + other.toEdges()).distinct()
+        return GraphImpl(combinedEdges)
     }
 
-    override fun addEdge(vertex1: Int, vertex2: Int, weight: Int) {
-        expandAdjacencyMap(vertex1, vertex2)
-        adjacencyMap[vertex1][vertex2] = weight
-        adjacencyMap[vertex2][vertex1] = weight
+    override fun addEdge(vertex1: String, vertex2: String, weight: Int) {
+        val indexOfVertex1 = vertexMap[vertex1] ?: vertexMap.size
+        vertexMap[vertex1] = indexOfVertex1
+        val indexOfVertex2 = vertexMap[vertex2] ?: vertexMap.size
+
+        vertexMap[vertex2] = indexOfVertex2
+        expandAdjacencyMap(vertexMap.size)
+        adjacencyMap[indexOfVertex1][indexOfVertex2] = weight
+        adjacencyMap[indexOfVertex2][indexOfVertex1] = weight
     }
 
-    override fun removeEdge(vertex1: Int, vertex2: Int) {
-        adjacencyMap[vertex1][vertex2] = 0
-        adjacencyMap[vertex2][vertex1] = 0
+    override fun removeEdge(vertex1: String, vertex2: String) {
+        val indexOfVertex1 = vertexMap[vertex1] ?: throw IllegalArgumentException("The vertex is not found")
+        val indexOfVertex2 = vertexMap[vertex2] ?: throw IllegalArgumentException("The vertex is not found")
+
+        adjacencyMap[indexOfVertex1][indexOfVertex2] = 0
+        adjacencyMap[indexOfVertex2][indexOfVertex1] = 0
+        vertexMap.remove(vertex1)
+        vertexMap.remove(vertex2)
     }
 
-    override fun updateEdge(vertex1: Int, vertex2: Int, newWeight: Int) {
-        adjacencyMap[vertex1][vertex2] = newWeight
-        adjacencyMap[vertex2][vertex1] = newWeight
+    override fun updateEdge(vertex1: String, vertex2: String, newWeight: Int) {
+        val indexOfVertex1 = vertexMap[vertex1] ?: throw IllegalArgumentException("The vertex is not found")
+        val indexOfVertex2 = vertexMap[vertex2] ?: throw IllegalArgumentException("The vertex is not found")
+        adjacencyMap[indexOfVertex1][indexOfVertex2] = newWeight
+        adjacencyMap[indexOfVertex2][indexOfVertex1] = newWeight
     }
 
-    override fun findShortestWay(source: Int): List<Int> {
+    override fun findShortestWay(source: String): List<Int> {
         val numVertices = adjacencyMap.size
         val distances = MutableList(numVertices) { Int.MAX_VALUE }
         val visited = BooleanArray(numVertices)
+        val sourceIndex = vertexMap[source] ?: return emptyList()
 
-        distances[source] = 0
+        distances[sourceIndex] = 0
 
         for (i in 0 until numVertices - 1) {
-            val minVertex = minDistance(distances, visited)
+            val minVertex = findMinDistance(distances, visited)
             visited[minVertex] = true
 
             for (v in 0 until numVertices) {
@@ -67,7 +83,7 @@ class GraphImpl(edges: List<Triple<Int, Int, Int>>) : Graph {
         return distances
     }
 
-    private fun minDistance(distances: List<Int>, visited: BooleanArray): Int {
+    private fun findMinDistance(distances: List<Int>, visited: BooleanArray): Int {
         var min = Int.MAX_VALUE
         var minIndex = -1
 
@@ -80,18 +96,55 @@ class GraphImpl(edges: List<Triple<Int, Int, Int>>) : Graph {
         return minIndex
     }
 
-    private fun expandAdjacencyMap(vertex1: Int, vertex2: Int) {
-        val maxVertex = maxOf(vertex1, vertex2)
-        val expandedAdjacencyMap = MutableList(maxVertex + 1) { MutableList(maxVertex + 1) { 0 } }
-        if (maxVertex < adjacencyMap.lastIndex) {
-            return
-        } else {
-            adjacencyMap.forEachIndexed { i, row ->
-                row.forEachIndexed { j, value ->
-                    expandedAdjacencyMap[i][j] = value
+    private fun expandAdjacencyMap(vertexMapSize: Int) {
+        val expandedAdjacencyMap = MutableList(vertexMapSize) { MutableList(vertexMapSize) { 0 } }
+        adjacencyMap.forEachIndexed { i, row ->
+            row.forEachIndexed { j, value ->
+                expandedAdjacencyMap[i][j] = value
+            }
+        }
+        adjacencyMap = expandedAdjacencyMap
+    }
+
+    fun toEdges(): List<Triple<String, String, Int>> {
+        val edges = mutableSetOf<Triple<String, String, Int>>()
+
+        adjacencyMap.forEachIndexed { i, row ->
+            row.forEachIndexed { j, weight ->
+                if (weight != 0) {
+                    val vertex1 = vertexMap.entries.find {
+                        it.value == i
+                    }?.key
+                    val vertex2 = vertexMap.entries.find {
+                        it.value == j
+                    }?.key
+                    if (vertex1 != null && vertex2 != null) {
+                        edges.add(Triple(vertex1, vertex2, weight))
+                    }
                 }
             }
-            adjacencyMap = expandedAdjacencyMap
+        }
+        val uniqueEdges = mutableListOf<Triple<String, String, Int>>()
+        val comparator = edgeComparator()
+
+        edges.forEach { edge ->
+            if (!uniqueEdges.any { comparator.compare(it, edge) == 0 }) {
+                uniqueEdges.add(edge)
+            }
+        }
+        return uniqueEdges
+    }
+
+
+    private fun edgeComparator(): Comparator<Triple<String, String, Int>> {
+        return Comparator { edge1, edge2 ->
+            if ((edge1.first == edge2.second && edge1.second == edge2.first) ||
+                (edge1.first == edge2.first && edge1.second == edge2.second)
+            ) {
+                0
+            } else {
+                edge1.hashCode().compareTo(edge2.hashCode())
+            }
         }
     }
 }
